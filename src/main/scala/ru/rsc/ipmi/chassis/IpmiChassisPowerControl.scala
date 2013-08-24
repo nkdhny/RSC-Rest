@@ -26,9 +26,12 @@ trait IpmiChassisPowerControl extends ChassisPowerControl with CredentialsProvid
     val availableCipherSites = connectionManager.getAvailableCipherSuites(connection)
 
     val cipherSuite = availableCipherSites.toList match {
-      case h::t => {
-        connectionManager.getChannelAuthenticationCapabilities(connection, h, PrivilegeLevel.MaximumAvailable)
-        h
+      /*
+      TO-DO: WTF?????
+       */
+      case h::h2::t => {
+        connectionManager.getChannelAuthenticationCapabilities(connection, h2, PrivilegeLevel.Administrator)
+        h2
       }
 
     }

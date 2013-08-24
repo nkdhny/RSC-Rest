@@ -14,7 +14,7 @@ class IpmiChassisPowerControlTest extends FunSuite {
 
   test("Power status must be defined"){
     val powerControl = new IpmiChassisPowerControl with StubCredentialsProvider {
-      def defaultPort: Int = 623
+      def defaultPort: Int = 8623
     }
 
     val addr = InetAddress.getByName("msk.rsc-tech.ru")
