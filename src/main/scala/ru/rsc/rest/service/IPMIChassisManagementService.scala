@@ -3,7 +3,8 @@ package ru.rsc.rest.service
 import spray.routing.HttpService
 import spray.http.MediaTypes._
 import akka.actor.Actor
-import ru.rsc.ipmi.rack.RackPowerControl
+import ru.rsc.ipmi.chassis.ChassisPowerControl
+import java.net.InetAddress
 
 /**
  * User: alexey
@@ -11,7 +12,7 @@ import ru.rsc.ipmi.rack.RackPowerControl
  * Time: 8:53 PM
  */
 
-abstract class IPMIRackManagementServiceActor extends Actor with IPMIRackManagementService {
+abstract class IPMIChassisManagementServiceActor extends Actor with IPMIChassisManagementService {
 
   // the HttpService trait defines only one abstract member, which
   // connects the services environment to the enclosing actor or test
@@ -25,14 +26,14 @@ abstract class IPMIRackManagementServiceActor extends Actor with IPMIRackManagem
 
 
 
-trait IPMIRackManagementService extends HttpService with RackPowerControl{
+trait IPMIChassisManagementService extends HttpService with ChassisPowerControl{
 
   val rackMgmtRoute =
     path("power" / Segment ) { addr => {
       get {
         respondWithMediaType(`application/json`) {
           complete {
-               powerCycle(addr)
+               powerCycle(InetAddress.getByName(addr))
                "{result: OK}"
           }
         }
