@@ -19,7 +19,7 @@ class IpmiChassisPowerControlTest extends FunSuite {
 
     val addr = InetAddress.getByName("msk.rsc-tech.ru")
 
-    assert(powerControl.powerState(addr).exists(PowerState.values.contains))
+    assert({val m = powerControl.powerState(addr); println(s"Test chassis status is: ${m.getOrElse("Undefined")}"); m}.exists(PowerState.values.contains))
   }
 
 }
