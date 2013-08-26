@@ -18,7 +18,7 @@ import scala.util.Try
  */
 trait IpmiChassisPowerControl extends ChassisPowerControl with CredentialsProvider {
 
-  def defaultPort: Int
+  def defaultPort: Int = 8386
   lazy val connectionManager = new IpmiConnector(defaultPort)
 
   private def doInAFreshSession(whatToDo: CipherSuite => IpmiCommandCoder): InetAddress => ResponseData = addr => {
