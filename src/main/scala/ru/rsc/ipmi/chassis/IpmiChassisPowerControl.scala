@@ -5,10 +5,11 @@ import com.veraxsystems.vxipmi.coding.commands.{ResponseData, IpmiVersion, Privi
 import com.veraxsystems.vxipmi.api.sync.IpmiConnector
 import java.net.InetAddress
 import com.veraxsystems.vxipmi.coding.commands.chassis.{GetChassisStatusResponseData, GetChassisStatus, PowerCommand, ChassisControl}
-import com.veraxsystems.vxipmi.coding.security.CipherSuite
+import com.veraxsystems.vxipmi.coding.security.{AuthenticationRakpNone, CipherSuite}
 import collection.JavaConversions._
 import com.veraxsystems.vxipmi.coding.protocol.AuthenticationType
 import ru.rsc.ipmi.chassis.ChassisPowerControl.PowerState
+import scala.util.Try
 
 /**
  * User: alexey
@@ -23,17 +24,19 @@ trait IpmiChassisPowerControl extends ChassisPowerControl with CredentialsProvid
   private def doInAFreshSession(whatToDo: CipherSuite => IpmiCommandCoder): InetAddress => ResponseData = addr => {
     val connection = connectionManager.createConnection(addr)
 
+    def goodAlgorythm: CipherSuite => Boolean = c => {
+      Try(!c.getAuthenticationAlgorithm.isInstanceOf[AuthenticationRakpNone]).toOption
+                                                                             .getOrElse(false)
+    }
+
     val availableCipherSites = connectionManager.getAvailableCipherSuites(connection)
-
-    val cipherSuite = availableCipherSites.toList match {
-      /*
-      TO-DO: WTF?????
-       */
-      case h::h2::t => {
-        connectionManager.getChannelAuthenticationCapabilities(connection, h2, PrivilegeLevel.Administrator)
-        h2
+                                                .toList
+                                                .filter(goodAlgorythm)
+    val cipherSuite = availableCipherSites match {
+      case h::t => {
+        connectionManager.getChannelAuthenticationCapabilities(connection, h, PrivilegeLevel.Administrator)
+        h
       }
-
     }
 
     connectionManager.openSession(connection, getLogin(), getPassword(), null)
@@ -47,18 +50,19 @@ trait IpmiChassisPowerControl extends ChassisPowerControl with CredentialsProvid
   private def powerCommandTemplate :
     (CipherSuite, PowerCommand) => IpmiCommandCoder = new ChassisControl(IpmiVersion.V20, _, AuthenticationType.RMCPPlus, _)
 
-  def powerCycle(addr: InetAddress) {
-    val command  = powerCommandTemplate(_: CipherSuite, PowerCommand.HardReset)
-    doInAFreshSession(command)(addr)
+  def powerState(addr: InetAddress) = {
+    val command = new GetChassisStatus(IpmiVersion.V20, _: CipherSuite, AuthenticationType.RMCPPlus)
+    Try{
+      doInAFreshSession(command)(addr) match {
+        case chassisStatus: GetChassisStatusResponseData if chassisStatus.isPowerOn => PowerState.ON
+        case chassisStatus: GetChassisStatusResponseData if !chassisStatus.isPowerOn => PowerState.OFF
+      }
+    }
   }
 
-  def powerState(addr: InetAddress) = {
-    val commmand = new GetChassisStatus(IpmiVersion.V20, _: CipherSuite, AuthenticationType.RMCPPlus)
-    doInAFreshSession(commmand)(addr) match {
-      case chassisStatus: GetChassisStatusResponseData if chassisStatus.isPowerOn => Some(PowerState.ON)
-      case chassisStatus: GetChassisStatusResponseData if !chassisStatus.isPowerOn => Some(PowerState.OFF)
-      case _ => None
-    }
+  protected def powerSet(addr: InetAddress, powerState: PowerState.PowerState): Try[Unit] = {
+    val command  = powerCommandTemplate(_: CipherSuite, if(powerState == PowerState.ON) PowerCommand.PowerUp else PowerCommand.PowerDown)
+    Try(doInAFreshSession(command)(addr))
   }
 }
 

@@ -5,6 +5,7 @@ import org.specs2.mutable.Specification
 import spray.testkit.Specs2RouteTest
 import java.net.InetAddress
 import ru.rsc.ipmi.chassis.ChassisPowerControl.PowerState
+import scala.util.{Success, Try}
 
 /**
  * User: alexey
@@ -13,17 +14,22 @@ import ru.rsc.ipmi.chassis.ChassisPowerControl.PowerState
  */
 
 object TestPowerControl {
-  var rackCycled: Option[String] = None
+  var asked: Option[String] = None
 }
 
 import TestPowerControl._
 
 trait TestPowerControl extends ChassisPowerControl {
-  def powerCycle(addr: InetAddress) {
-    rackCycled = Some(addr.getHostName)
+
+  def powerState(addr: InetAddress): Try[PowerState.PowerState] = {
+
+    Success(PowerState.ON)
   }
 
-  def powerState(addr: InetAddress): Option[PowerState.PowerState] = None
+  protected def powerSet(addr: InetAddress, powerState: PowerState.PowerState): Try[Unit] = {
+    asked = Some(addr.getHostName)
+    Success(Unit)
+  }
 }
 
 class IPMIChassisManagementServiceTest extends Specification with Specs2RouteTest
@@ -32,13 +38,25 @@ class IPMIChassisManagementServiceTest extends Specification with Specs2RouteTes
   def actorRefFactory = system
 
   "IPMIRackManagementService" should {
-    "respond with OK to power cycle request and call the power control service" in {
+    "respond with OK to power status request" in {
 
       Get("/power/ya.ru") ~> rackMgmtRoute ~> check {
 
         entityAs[String] must contain("OK")
-        rackCycled === Some("ya.ru")
 
+      }
+    }
+
+    "Ask a service to turn chassis off when it is powered on" in {
+      Put("/power/ya.ru/off") ~> rackMgmtRoute ~> check {
+        asked.get === "ya.ru"
+        entityAs[String] must contain("OK")
+      }
+    }
+
+    "Respond with error when asked to turn on powered chassis" in {
+      Put("/power/ya.ru/on") ~> rackMgmtRoute ~> check {
+        entityAs[String] must contain("FAILED")
       }
     }
   }
