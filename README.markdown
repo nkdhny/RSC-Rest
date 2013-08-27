@@ -1,4 +1,4 @@
-## _spray_ Template Project
+## RSC sample APP based on _spray_ Template Project
 
 This projects provides a starting point for your own _spray-routing_ endeavors.
 There are four branches, providing templates for _spray-routing_ on
@@ -43,3 +43,26 @@ Follow these steps to get started:
 8. Learn more at http://www.spray.io/
 
 9. Start hacking on `src/main/scala/com/example/MyService.scala`
+
+
+## API
+
+* get the state of the chassis _chassis.somewhere.com_
+
+To get the state of the power of chassis identified by name _chassis.somewhere.com_ make a _GET_ request to
+
+    /power/chassis.somewhere.com/
+
+Response will be like this
+
+    {result: OK, power: ON}
+
+* set the state of the power for _chassis.somewhere.com_
+
+Make the _PUT_ request to
+
+    /power/chassis.somewhere.com/{on|off}
+
+Response
+
+    {result: OK}

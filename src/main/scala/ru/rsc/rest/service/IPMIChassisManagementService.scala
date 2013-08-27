@@ -34,18 +34,7 @@ trait IPMIChassisManagementService extends HttpService with ChassisPowerControl{
     path("power" / Segment / Segment) { (addr, action) => {
       val resolvedAddr = InetAddress.getByName(addr)
       lazy val currentState = powerState(resolvedAddr).toOption.getOrElse(PowerState.UNDEFINED)
-
-      get {
-        respondWithMediaType(`application/json`) {
-          complete {
-               s"""{
-                      result: OK,
-                      power: ${currentState}
-               }"""
-          }
-        }
-      }
-      put{
+      put {
         val resp = action match {
           case "on" => toggleChassis(on, currentState, resolvedAddr, PowerState.ON::PowerState.UNDEFINED::Nil)
           case "off" => toggleChassis(off, currentState, resolvedAddr, PowerState.OFF::PowerState.UNDEFINED::Nil)
@@ -58,7 +47,19 @@ trait IPMIChassisManagementService extends HttpService with ChassisPowerControl{
           }
         }
       }
-  }
+    } ~ path("power" / Segment ) { addr => {
+      val resolvedAddr = InetAddress.getByName(addr)
+        lazy val currentState = powerState(resolvedAddr).toOption.getOrElse(PowerState.UNDEFINED)
+
+        get {
+          respondWithMediaType(`application/json`) {
+            complete {
+              s"""{\n\tresult: OK,\n\tpower: ${currentState}\n}"""
+            }
+          }
+        }
+      }
+    }
 
 
   private def toggleChassis(action: InetAddress => Try[Unit],
